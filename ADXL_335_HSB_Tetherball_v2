@@ -1,12 +1,5 @@
 /*
- Rainbow
-
- Take an RGB LED through the colours of the rainbow using an analogue input taken from an accelerometer.
-
- Based on code first written by
- By Jason Judge Created 21 April 2012
-
- This code is in the public domain.
+My 2nd attempt at HSB and acceleromter control. XYZ axes are added together to make a value that is then mapped to the HUE.
 
  */
  
@@ -135,7 +128,7 @@ void loop()
   // This was determined by monitoring accelVal while hitting the ball
   // and identifying the higest and lowest values
   
-  int potPinHue = constrain(accelVal, 150, 1100);
+  int potPinHue = constrain(accelVal, 150, 900);
  
 
   
@@ -160,7 +153,7 @@ void loop()
   
   
   // The Hue value is mapped to degrees - 0 to 360 - for convenience
-    potValueHue = map(analogRead(average), 150, 1000, 0, 360);
+    potValueHue = map(analogRead(average), 100, 1100, 0, 360);
 
   /* 
   
@@ -237,6 +230,8 @@ void loop()
     Serial.print(b);
     Serial.print(" accelVal=");
     Serial.print(accelVal);
+    Serial.print(" potValueHue=");
+    Serial.print(potValueHue);
     Serial.println("");
     delay(50);
 }
@@ -271,7 +266,7 @@ void loop()
     {
         unsigned int scaledHue = (inHue * 6);
         unsigned int sector = scaledHue >> 8; // sector 0 to 5 around the color wheel
-        unsigned int offsetInSector = scaledHue - (sector << 8);  // position within the sector         
+        unsigned int offsetInSector = scaledHue - (sector << 8); // position within the sector         
         unsigned int p = (inBrightness * ( 255 - inSaturation )) >> 8;
         unsigned int q = (inBrightness * ( 255 - ((inSaturation * offsetInSector) >> 8) )) >> 8;
         unsigned int t = (inBrightness * ( 255 - ((inSaturation * ( 255 - offsetInSector )) >> 8) )) >> 8;
