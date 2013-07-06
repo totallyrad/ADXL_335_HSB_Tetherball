@@ -46,7 +46,7 @@ const int brightMax = 255;
 
 // Work variables.
 
-// The potentiometer value is mapped to the range 0 to 360 (degrees).
+// The accelValueHue value is mapped to the range 0 to 360 (degrees).
 
 int accelValueHue;
 
