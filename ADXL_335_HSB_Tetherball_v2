@@ -3,7 +3,7 @@ My 2nd attempt at HSB and acceleromter control. XYZ axes are added together to m
 
  */
  
-const int numReadings = 100;     // Sets number of readings (smoothing amount. I chose a very high number to start with)
+const int numReadings = 25;     // Sets number of readings (smoothing amount. I chose a very high number to start with)
 
 // Setting up the smoothing int
 
@@ -24,10 +24,6 @@ const int zPin = 2;
 const int ledPinRed = 3;    // Red LED connected to analogue out pin
 const int ledPinGrn = 5;    // Green LED connected to analogue out pin
 const int ledPinBlu = 6;     // Blue LED connected to analogue out pin
-
-//For changing modes in Jason Judge's code. Left it in even though it's not doing anything. 
-
- const int modeSwitchPin = 12;
 
 
 int accelVal = 0; // store the value coming from the accelerometer
@@ -52,7 +48,7 @@ const int brightMax = 255;
 
 // The potentiometer value is mapped to the range 0 to 360 (degrees).
 
-int potValueHue;
+int accelValueHue;
 
 // The hue is the range 0 (red) to 170 (blue) in rainbow
 // mode or 255 (red) in colour wheel mode.
@@ -67,7 +63,11 @@ int hue, brightness;
 
 const int saturation = 255;
 
-// The brightess of each LED (0 to 255).
+// step variable, this is the speed the hue value increases
+
+int step = 1;
+
+// placeholders for the RGB values
 
 unsigned int r, g, b;
 
@@ -89,7 +89,7 @@ void setup()
     pinMode(ledPinBlu, OUTPUT);
 
     // Poteniometer analogue pin is an input.
-    // pinMode(potPinHue, INPUT);
+    // pinMode(accelHue, INPUT);
     
     // pinMode for accelerometer
     pinMode(xPin, INPUT);
@@ -116,28 +116,24 @@ void loop()
   When using HSV Hue is what moves through the color spectrum as I understand it
   so there's only one value that you need to adjust
   
-  I decided on averaging the values of the three inputs
-  although I may experiment with just adding up the values to see if
-  that gives me a broader range of values
+  I am adding up the values to give a single "movement" measurement
   
   */
   
   accelVal = (xRead+yRead+zRead); 
   
-  // define potPinHue as accelVal constrained to 150 through 400
+  // define accelHue as accelVal constrained to 500 through 1200
   // This was determined by monitoring accelVal while hitting the ball
   // and identifying the higest and lowest values
   
-  int potPinHue = constrain(accelVal, 150, 900);
+  int accelHue = constrain(accelVal, 500, 1200);
  
-
-  
   // This summing section is straight from Jason's code, I don't pretend to really know all it's details
   
   // subtract the last reading:
   total= total - readings[index];         
   // read from the sensor:  
-  readings[index] = potPinHue; 
+  readings[index] = accelHue; 
   // add the reading to the total:
   total= total + readings[index];       
   // advance to the next position in the array:  
@@ -152,60 +148,37 @@ void loop()
   average = total / numReadings;     
   
   
-  // The Hue value is mapped to degrees - 0 to 360 - for convenience
-    potValueHue = map(analogRead(average), 100, 1100, 0, 360);
+  // The accelValueHue value is mapped to degrees - 0 to 300 - so max impact would take you halfway through the spectrum
+    accelValueHue = map(analogRead(average), 500, 1200, 0, 300);
 
-  /* 
+  // step defined as an ever increasing value
   
-  Control the mode using a physical switch. I left it in since it doesn't seem to impact 
-  things even though I'm not using a switch to change modes. 
-  In a future revision I plan to use a timer of some sort to switch between the modes to give
-  some variety in how the game reacts. 
-  
-  Another idea could be to make a sudden impact change the mode
-  This could be accomplished by setting a threshold in the "average"
-  or XYZ reads that indicates a mode change
+  step += 1; 
 
-  */
-    if (digitalRead(modeSwitchPin)) {
-        // Rainbow colour mode (infra-red to ultra-violet - well invisible to invisible  .
+// Taking accelValueHue and defining hue
 
-        // The hue ranges from red (0) at 60 degrees to blue (170) at 300 degrees.
-        hue = constrain(map(potValueHue, angleSector, angleMax - angleSector, hueRedLow, hueBlue), hueRedLow, hueBlue);
-
-        // Brightness - fade up 0-60 degrees
-        brightness = constrain(map(potValueHue, angleMin, angleSector, brightMin, brightMax), brightMin, brightMax);
-
-        // Brightness fade down 300-360 degrees
-        brightness = brightness - constrain(map(potValueHue, angleMax - angleSector, angleMax, brightMin, brightMax), brightMin, brightMax);
-    } else { 
+   { 
         // Colour wheel mode (red to red, wrapped around in a cycle).
 
-        hue = map(potValueHue, angleMin, angleMax, hueRedLow, hueRedHigh);
+        hue = step + map(accelValueHue, angleMin, angleMax, hueRedLow, hueRedHigh);
 
-        // The brightness is fixed at full for the colour wheel. This could be
-        // linked to another poteniometer if that is a concept you wish to
-        // demonstrate. 
+        // loops the value around 
+        
+        if (step > 360) {
+          step -= 360;
+        }
+        
+        if (hue > 360) {
+          hue -= 360;
+        }
+
+  
         // Maps the accelVal to a Brighness var, mapped to 0-255 inverted)
+       
+        brightnessValue = constrain(accelVal, 1200, 500);
         
-        brightnessValue = constrain(accelVal, 1100, 100);
-        
-        brightness = map(accelVal, 1100, 100, 0, 255);
-        
-         // Maps the accelVal to a Brighness var, mapped to 0-255 inverted)
- 
+        brightness = map(brightnessValue, 1200, 500, 10, 255);
 
-        
-    // Plan to add a while section here to make the Brightness flash when an impact is detected.
-    // This could be accomplished by setting a threshold in the "average"
-    /*
-    {
-      while(average > 300)
-      {
-        Flash();
-      }
-    
-    }*/
     }
 
     // Using HSBtoRGB to send to the RGB outputs
@@ -230,8 +203,10 @@ void loop()
     Serial.print(b);
     Serial.print(" accelVal=");
     Serial.print(accelVal);
-    Serial.print(" potValueHue=");
-    Serial.print(potValueHue);
+    Serial.print(" average=");
+    Serial.print(average);
+    Serial.print(" accelHue=");
+    Serial.print(accelHue);
     Serial.println("");
     delay(50);
 }
